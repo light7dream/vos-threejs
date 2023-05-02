@@ -1,134 +1,162 @@
 import './style.css'
 import * as THREE from 'three'
-import {TWEEN} from '@tweenjs/tween.js'
+import * as dat from 'dat.gui'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import TrackballControlls from 'three-trackballcontrols';
-// variables 
-const sizes = {
-  width: window.innerWidth,
-  height: window.innerHeight
-}
-let Canvas, sphere, pointLight, camera, renderer, scene, controls, mesh
-const objects = []
-const particlesTotal = 512
-const positions = []
 
-// GltfLoader & Canvas & Scene & Debug
 const loader = new GLTFLoader();
 
-function onWindowResize(){
-    // update size
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
-    // update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
-    // update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-}
-async function init() {
-  Canvas = document.querySelector('canvas.webgl')
+// Debug
+const gui = new dat.GUI()
 
-  // add Object on scence
-  scene = new THREE.Scene()
+// Canvas
+const canvas = document.querySelector('canvas.webgl')
 
-  //Lights init
-  pointLight = new THREE.PointLight(0xffffff, .1)
-  pointLight.position.x = 2
-  pointLight.position.y = 3
-  pointLight.position.z = 4
+// Scene
+const scene = new THREE.Scene()
 
-  // base camera  
-  camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-  camera.position.x = 0
-  camera.position.y = 0
-  camera.position.z = 2
+async function App(){
 
-  // renderer
-  renderer = new THREE.WebGLRenderer({canvas: Canvas})
-  renderer.setSize(sizes.width, sizes.height)
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  
-  //
-  controls = new TrackballControlls(camera, renderer.domElement)
+  let mesh1;
+  mesh1 = (await loader.loadAsync("models/gltf/cube.glb")).scene
+  mesh1.position.x=1
+  mesh1.position.y=-4
+  mesh1.position.z=-10
+//   scene.add(mesh1)
 
-  // window init
-  window.addEventListener('resize', onWindowResize())
+    // Objects
+    const geometry = new THREE.ConvexGeometry(1,1,1)
+    // Materials
+    const material = new THREE.PointsMaterial({ color: 0xa364ff, size: 10 });
+    // Mesh
+    const sphere = new THREE.Points(geometry, material)
+    // sphere.scale.set(0.00001,0.00001,0.00001)
+    scene.add(sphere)
+    // Lights
 
+    const pointLight = new THREE.PointLight(0xffffff, )
+    pointLight.position.x = 0
+    pointLight.position.y = 0
+    pointLight.position.z = 0
+    scene.add(pointLight)
 
-
-  // Object an Material
-  const geometry = new THREE.TorusGeometry(.7, .2, 16, 100)
-  const material = new THREE.PointsMaterial({ size: 0.005 })
-
-  loader.load('models/gltf/sphere.glb', (gltf)=>{
-    const mesh = gltf.scene.children[0];
-    const geometry = mesh.geometry.clone();
-
-    const positions = geometry.attributes.position.array;
-    const numParticles = positions.length / 3; // assuming each vertex has three components: x, y, z
-    const particlePositions = new Float32Array(numParticles * 3);
-
-    for (let i = 0; i < numParticles; i++) {
-      const i3 = i * 3;
-      const x = positions[i3 + 0];
-      const y = positions[i3 + 1];
-      const z = positions[i3 + 2];
-
-      // Calculate a random offset from the original vertex position
-      const offset = new THREE.Vector3(
-        Math.random() * 0.1 - 0.05,
-        Math.random() * 0.1 - 0.05,
-        Math.random() * 0.1 - 0.05
-      );
-
-      // Add the offset to the original vertex position to create a new particle position
-      const particlePosition = new THREE.Vector3(x, y, z).add(offset);
-
-      // Update the particle position buffer array
-      particlePositions[i3 + 0] = particlePosition.x;
-      particlePositions[i3 + 1] = particlePosition.y;
-      particlePositions[i3 + 2] = particlePosition.z;
+    /**
+     * Sizes
+     */
+    const sizes = {
+        width: window.innerWidth,
+        height: window.innerHeight
     }
 
-    // Create a new buffer attribute with the particle positions and set it on the geometry
-    geometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    const material = new THREE.PointsMaterial({
-      size: 0.01,
-      color: 0xffffff,
-      opacity: 0.8,
-      transparent: true
-    });
-    const points = new THREE.Points(geometry, material);
-    scene.add(points);
+    window.addEventListener('resize', () =>
+    {
+        // Update sizes
+        sizes.width = window.innerWidth
+        sizes.height = window.innerHeight
 
-    points.material = material;
-    
+        // Update camera
+        camera.aspect = sizes.width / sizes.height
+        camera.updateProjectionMatrix()
 
-    // scene.add(gltf.scene);
-  })
+        // Update renderer
+        renderer.setSize(sizes.width, sizes.height)
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    })
 
-  // Mesh init
-  sphere = new THREE.Points(geometry, material)
-  scene.add(sphere)
-  scene.add(pointLight)
-  scene.add(camera)
+    /**
+     * Camera
+     */
+    // Base camera
+    const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+    camera.position.x = 0
+    camera.position.y = 0
+    camera.position.z = 2
+    scene.add(camera)
+
+    // Controls
+    // const controls = new OrbitControls(camera, canvas)
+    // controls.enableDamping = true
+
+    /**
+     * Renderer
+     */
+    const renderer = new THREE.WebGLRenderer({
+        canvas: canvas
+    })
+    renderer.setSize(sizes.width, sizes.height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+    /**
+     * Animate
+     */
+
+
+    const clock = new THREE.Clock()
+
+    const tick = () =>
+    {
+
+        const elapsedTime = clock.getElapsedTime()
+
+        // Update objects
+        sphere.rotation.y = .5 * elapsedTime
+        // Update Orbital Controls
+        // controls.update()
+        // Render
+        // update the morph target values over time
+      
+        
+        // Interpolate amount value
+        renderer.render(scene, camera);
+        window.requestAnimationFrame(tick)
+    }
+
+    tick()
+
 }
 
+App()
 
-function animate(){
 
-  requestAnimationFrame( animate );
-  controls.update();
-  const time = performance.now()
-  for(let i = 0, l = objects.length; i < l; i++) {
-    const object = objects[i]
-    const scale = Math.sin((Math.floor(object.position.x)+time)*0.002)*0.3 + 1
-    object.scale.set(scale, scale, scale)
-  }
-  renderer.render(scene, camera)
-}
+// // Define the original geometry and its morph targets
+// const geometry = new THREE.BoxGeometry(1, 1, 1);
+// const morphTarget1 = new THREE.BoxGeometry(0.5, 1.5, 1);
+// const morphTarget2 = new THREE.BoxGeometry(1.5, 0.5, 1);
 
-init()
-animate()
+// geometry.morphTargets = [
+//   { name: 'morphTarget1', vertices: morphTarget1.attributes.position.array },
+//   { name: 'morphTarget2', vertices: morphTarget2.attributes.position.array }
+// ];
+
+// // Create a mesh with the original geometry
+// const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+// const mesh = new THREE.Mesh(geometry, material);
+// scene.add(mesh);
+// console.log(mesh)
+// let morphTargetIndex = 0; // start with the original shape
+
+// function animate() {
+//   requestAnimationFrame(animate);
+
+//   // Update the morph target influence
+//   mesh.morphTargetInfluences[morphTargetIndex] += 0.01;
+
+//   if (mesh.morphTargetInfluences[morphTargetIndex] > 1) {
+//     // Switch to the next morph target
+//     morphTargetIndex++;
+
+//     if (morphTargetIndex >= geometry.morphTargets.length) {
+//       // Loop back to the start when we reach the end
+//       morphTargetIndex = 0;
+//     }
+//   }
+
+//   // Reset the other morph target influences
+//   for (let i = 0; i < geometry.morphTargets.length; i++) {
+//     if (i !== morphTargetIndex) {
+//       mesh.morphTargetInfluences[i] = 0;
+//     }
+//   }
+
+//   renderer.render(scene, camera);
+// }
+// animate();
